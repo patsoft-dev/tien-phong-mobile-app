@@ -50,6 +50,15 @@ const QCLineModal = (props: QCLineModalProps) => {
       Alert.alert("Thông báo", "Vui lòng kiểm tra lại dữ liệu.");
       return;
     }
+
+    if (!dataSubmit.Result) {
+      Toast.show({
+        type: "info",
+        text1: "Không có dữ liệu Result",
+        text2: "Dòng đã được lưu nhưng không có giá trị Result.",
+      });
+    }
+
     // CHỈ CẦN GỌI onSubmit, để component cha tự đóng Modal sau khi lưu thành công
     if (typeof props?.onSubmit === "function") {
       props.onSubmit(dataSubmit);

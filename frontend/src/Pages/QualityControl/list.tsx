@@ -56,6 +56,7 @@ const QualityControlList = () => {
     { name: "TestingDate", label: "TestingDate", width: 120 },
     { name: "Description", label: "Description", width: 200 },
     { name: "Conclude", label: "Conclude", width: 100 },
+    { name: "Owner", label: "Owner", width: 140 },
     // { name: "Actions_Right", label: "Xóa", width: 50 },
   ];
 
@@ -68,6 +69,7 @@ const QualityControlList = () => {
     "TestingDate",
     "Description",
     "Conclude",
+    "Owner",
     "Actions_Right",
   ]);
 
@@ -101,6 +103,22 @@ const QualityControlList = () => {
         </Text>
       );
     }
+    if (columnName === "Owner") {
+      return <Text className="text-gray-900 font-semibold">{item.Owner}</Text>;
+    }
+
+    if (columnName === "Conclude") {
+      return (
+        <Text
+          className={`font-bold ${
+            item.Conclude === "K" ? "text-red-600" : "text-gray-700"
+          }`}
+        >
+          {item.Conclude}
+        </Text>
+      );
+    }
+
     // if (columnName === "Actions_Right") {
     //   return (
     //     // 💡 SỬA TẠI ĐÂY: Truyền trọn vẹn `item` vào hàm xử lý xóa
@@ -172,20 +190,27 @@ const QualityControlList = () => {
 
       // console.log("Dữ liệu Server trả về:", response);
       if (response.success && response.data) {
-        const _data = response.data.Item;
-        // const sortedData = [...response.data].sort((a, b) => {
-        //   const soPhieuA = a.soPhieu || "";
-        //   const soPhieuB = b.soPhieu || "";
-        //   return soPhieuA.localeCompare(soPhieuB, undefined, {
+        const itemObj = response.data.Item;
+        const rawArray = itemObj.Data || [];
+        setList(rawArray);
+
+        //   const itemObj = response.data.Item;
+        // const rawArray = itemObj.Data || [];
+
+        // // Sắp xếp giảm dần: đưa b lên trước a
+        // const sortedData = [...rawArray].sort((a, b) => {
+        //   const soPhieuA = a.TestingNbr || "";
+        //   const soPhieuB = b.TestingNbr || "";
+        //   return soPhieuB.localeCompare(soPhieuA, undefined, {
         //     numeric: true,
         //     sensitivity: "base",
         //   });
         // });
-        // setList(sortedData);
-        const items = _data.Data || [];
 
-        setList(items);
-        setTotalPage(_data.TotalPages || 0);
+        // setList(sortedData);
+        // setTotalPage(itemObj.TotalPages || 0);
+
+        setTotalPage(itemObj.TotalPages || 0);
       }
     } catch (error: any) {
       console.error("❌ Lỗi xảy ra tại hàm getList ở Page:", error);
@@ -269,6 +294,9 @@ const QualityControlList = () => {
           selectedColumns={selectedColumns}
           onRowPress={(item) => handleEdit(item)}
           renderCell={renderCustomCell}
+          getRowClassName={(item) =>
+            item.Conclude === "K" ? "bg-amber-100" : ""
+          }
         />
       </View>
 

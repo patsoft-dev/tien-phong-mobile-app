@@ -31,6 +31,7 @@ export type TypeFormQCHeader = {
   ProductionStandard?: string;
   DiscreteNbr?: string;
   MFNongDescr?: string;
+  Owner?: string;
 };
 
 export type TypeFormQCDetail = {
@@ -54,10 +55,17 @@ export type InspectionTimeType = {
   Code: string;
   Descr: string;
 };
+
 export type MFNongType = {
   MachineID: number;
   MachineCode: string;
   MachineName: string;
+};
+
+export type LSXType = {
+  DiscreteID: number;
+  DiscreteNbr: string;
+  LenhSanXuatRef: string;
 };
 
 export type QualityControlResponse = {

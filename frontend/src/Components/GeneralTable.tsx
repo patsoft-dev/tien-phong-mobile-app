@@ -1,17 +1,17 @@
-import React from 'react';
+import React from "react";
 import {
   Dimensions,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-const {width: screenWidth} = Dimensions.get('window');
-// Định nghĩa kiểu dữ liệu cho Column
+} from "react-native";
+const { width: screenWidth } = Dimensions.get("window");
+
 export interface TableColumn {
   name: string;
   label: string;
-  width?: number; // Cho phép tùy chỉnh độ rộng từng cột
+  width?: number;
 }
 
 interface GeneralTableProps {
@@ -23,7 +23,9 @@ interface GeneralTableProps {
     columnName: string,
     item: any,
     index: number,
-  ) => React.ReactNode; // Để xử lý format đặc biệt như ngày tháng
+  ) => React.ReactNode;
+  // 🌟 Thêm prop tùy chọn để format màu hàng theo điều kiện item
+  getRowClassName?: (item: any, index: number) => string;
 }
 
 const GeneralTable = ({
@@ -32,9 +34,9 @@ const GeneralTable = ({
   selectedColumns,
   onRowPress,
   renderCell,
+  getRowClassName,
 }: GeneralTableProps) => {
-  // Lọc ra các cột được chọn để hiển thị
-  const visibleColumns = columns.filter(col =>
+  const visibleColumns = columns.filter((col) =>
     selectedColumns.includes(col.name),
   );
 
@@ -49,11 +51,11 @@ const GeneralTable = ({
                 key={col.name}
                 className={`items-center justify-center ${
                   index < visibleColumns.length - 1
-                    ? 'border-r border-white/20'
-                    : ''
+                    ? "border-r border-white/20"
+                    : ""
                 }`}
-                // Kiểm tra nếu là cột STT thì cho độ rộng cố định nhỏ hơn
-                style={{width: col.name === 'STT' ? 60 : col.width || 100}}>
+                style={{ width: col.name === "STT" ? 60 : col.width || 100 }}
+              >
                 <Text className="text-white font-bold">{col.label}</Text>
               </View>
             ))}
@@ -62,57 +64,65 @@ const GeneralTable = ({
           {/* Body table */}
           <ScrollView className="flex-col">
             {data?.length > 0 ? (
-              data.map((value: any, key: number) => (
-                <TouchableOpacity
-                  key={key}
-                  onPress={() => onRowPress && onRowPress(value, key)}
-                  className={`flex-row items-center border-b border-gray-200 py-3 ${
-                    key % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                  }`}>
-                  {visibleColumns.map(col => {
-                    // Xử lý riêng cho cột STT
-                    if (col.name === 'STT') {
+              data.map((value: any, key: number) => {
+                // 🌟 Lấy class tùy chỉnh từ prop (nếu có)
+                const customRowClass = getRowClassName
+                  ? getRowClassName(value, key)
+                  : "";
+                const defaultBg = key % 2 === 0 ? "bg-white" : "bg-gray-50";
+
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    onPress={() => onRowPress && onRowPress(value, key)}
+                    className={`flex-row items-center border-b border-gray-200 py-3 ${
+                      customRowClass || defaultBg
+                    }`}
+                  >
+                    {visibleColumns.map((col) => {
+                      if (col.name === "STT") {
+                        return (
+                          <View
+                            key="STT"
+                            className="items-center justify-center border-r border-gray-200"
+                            style={{ width: 60 }}
+                          >
+                            <Text className="text-gray-700">{key + 1}</Text>
+                          </View>
+                        );
+                      }
+
+                      const customContent = renderCell
+                        ? renderCell(col.name, value, key)
+                        : null;
+
                       return (
                         <View
-                          key="STT"
+                          key={col.name}
+                          style={{ width: col.width || 100 }}
                           className="items-center justify-center border-r border-gray-200"
-                          style={{width: 60}}>
-                          <Text className="text-gray-700">{key + 1}</Text>
+                        >
+                          {customContent !== null &&
+                          customContent !== undefined ? (
+                            customContent
+                          ) : (
+                            <Text className="text-gray-700 text-center">
+                              {value[col.name] !== undefined
+                                ? String(value[col.name])
+                                : ""}
+                            </Text>
+                          )}
                         </View>
                       );
-                    }
-
-                    // Lấy nội dung tùy chỉnh từ props renderCell truyền vào
-                    const customContent = renderCell
-                      ? renderCell(col.name, value, key)
-                      : null;
-
-                    return (
-                      <View
-                        key={col.name}
-                        style={{width: col.width || 100}}
-                        className="items-center justify-center border-r border-gray-200">
-                        {/* Kiểm tra: Nếu customContent có giá trị (không null/undefined) thì ưu tiên hiển thị */}
-                        {customContent !== null &&
-                        customContent !== undefined ? (
-                          customContent
-                        ) : (
-                          // Ngược lại mới hiển thị text mặc định từ data
-                          <Text className="text-gray-700 text-center">
-                            {value[col.name] !== undefined
-                              ? String(value[col.name])
-                              : ''}
-                          </Text>
-                        )}
-                      </View>
-                    );
-                  })}
-                </TouchableOpacity>
-              ))
+                    })}
+                  </TouchableOpacity>
+                );
+              })
             ) : (
               <View
-                style={{width: screenWidth}} // Ép độ rộng bằng màn hình
-                className="p-10 items-center justify-center">
+                style={{ width: screenWidth }}
+                className="p-10 items-center justify-center"
+              >
                 <Text className="text-gray-400">Không có dữ liệu</Text>
               </View>
             )}

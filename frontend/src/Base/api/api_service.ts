@@ -8,7 +8,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  */
 const getAccessToken = async (): Promise<string | null> => {
   try {
-    const userRaw = await AsyncStorage.getItem("storeUSerData");
+    const userRaw = await AsyncStorage.getItem("storeUserData");
     if (!userRaw) return null;
     const userData = JSON.parse(userRaw);
     return userData?.tokenID || null;

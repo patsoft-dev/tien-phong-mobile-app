@@ -6,6 +6,7 @@ import {
   faCamera,
   faRotateRight,
   faQrcode,
+  faMagnifyingGlass,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import React, { useEffect, useState } from "react";
@@ -39,6 +40,7 @@ import {
   TypeFormQCHeader,
   InspectionTimeType,
   MFNongType,
+  LSXType,
 } from "./type";
 import {
   QualityControlStatusTypeAtom,
@@ -49,6 +51,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import InspectionTimeModalList from "./Modal/InspectionTimeModal";
 import MFNongModalList from "./Modal/MFNongModal";
 import QCLineModal from "./Modal/QCLineModal";
+import LSXModalList from "./Modal/LSXModal";
 
 const DetailQualityControl = () => {
   const navigate = useNavigation();
@@ -78,6 +81,7 @@ const DetailQualityControl = () => {
   >([]);
   const [mfNongModal, setMFNongModal] = useState(false);
   const [mfNongList, setMFNongList] = useState<MFNongType[]>([]);
+  const [lsxModal, setLsxModal] = useState(false);
   // const [chuanKiemValue, setChuanKiemValue] = useState<InspectionStandardType>(
   //   {} as InspectionStandardType,
   // );
@@ -354,7 +358,9 @@ const DetailQualityControl = () => {
   const handleMFNongModal = () => {
     setMFNongModal(!mfNongModal);
   };
-
+  const handleLSXModal = () => {
+    setLsxModal(!lsxModal);
+  };
   const handleGetValueFromInspectionTimeModal = (item: InspectionTimeType) => {
     setFormValues((prevValues: any) => ({
       ...prevValues,
@@ -367,6 +373,20 @@ const DetailQualityControl = () => {
       ...prevValues,
       Mfnong: item.MachineID,
       MFNongDescr: item.MachineName,
+    }));
+  };
+
+  const handleGetValueFromLSXModal = async (item: LSXType) => {
+    const lsxNbr = item.DiscreteNbr;
+    if (lsxNbr) {
+      await handleScanResult(lsxNbr);
+    }
+  };
+
+  const handleClearQrcode = () => {
+    setFormValues((prevValues: any) => ({
+      ...prevValues,
+      DiscreteNbr: "",
     }));
   };
 
@@ -387,16 +407,34 @@ const DetailQualityControl = () => {
       return;
     }
 
+    // 🌟 1. Xác định gốc ngày: Lấy từ formValues.TestingDate nếu có, ngược lại lấy ngày hiện tại
+    const baseDate = formValues?.TestingDate
+      ? new Date(formValues.TestingDate)
+      : new Date();
+
+    // 🌟 2. Cộng thêm 7 giờ (múi giờ Việt Nam UTC+7)
+    const tzOffsetMs = 7 * 60 * 60 * 1000;
+    const vnDate = new Date(baseDate.getTime() + tzOffsetMs);
+
+    // 🌟 3. Cập nhật Header với TestingDate đã được cộng +7h
+    const updatedHeader = {
+      ...formValues,
+      TestingDate: vnDate.toISOString(),
+    };
+
     const submitData = {
-      Header: formValues,
+      Header: updatedHeader,
       Details: lineValues,
     };
-    console.log("Header", submitData);
+
+    console.log("Header submitData:", submitData);
+    // return;
 
     try {
+      setLoadingAtom(true);
       const url = "/APIMobile/SaveShiftTesting";
       const resp = await postApi(url, submitData);
-      // console.log("🔴 Kiểm tra phản hồi API thành công - Resp:", resp);
+      console.log("log HandleSave: ", resp);
       if (resp.success && resp.data) {
         Toast.show({
           type: "success",
@@ -412,7 +450,6 @@ const DetailQualityControl = () => {
         });
       }
     } catch (err: any) {
-      // Khối catch này sẽ bắt được lỗi từ lệnh "throw error" trong postApi của bạn
       console.log("🔴 Kiểm tra phản hồi lỗi API - Err: ", err);
       if (err.status === 400) {
         Toast.show({
@@ -430,7 +467,7 @@ const DetailQualityControl = () => {
         });
       }
     } finally {
-      setLoadingAtom(false); // Đảm bảo luôn luôn tắt loading dù thành công hay thất bại
+      setLoadingAtom(false);
     }
   };
 
@@ -464,243 +501,255 @@ const DetailQualityControl = () => {
           }
         />
 
-        {!isScanned ? (
-          <View className="flex-1 items-center justify-center p-6">
-            <FontAwesomeIcon icon={faQrcode} size={100} color="#cbd5e1" />
-            <TouchableOpacity
-              onPress={() => setShowCameraModal(true)}
-              className="bg-primary px-10 py-3 rounded-xl mt-6"
-            >
-              <Text className="text-white font-bold uppercase">
-                Scan the QR code
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <ScrollView className="flex-1 p-3">
-            {/* <Text style={{ fontFamily: "monospace" }} className="text-gray-900">
+        <ScrollView className="flex-1 p-3">
+          {/* <Text style={{ fontFamily: "monospace" }} className="text-gray-900">
               {JSON.stringify(formValues, null, 2)}
             </Text> */}
-            {/* <Text style={{ fontFamily: "monospace" }} className="text-gray-900">
+          {/* <Text style={{ fontFamily: "monospace" }} className="text-gray-900">
               {JSON.stringify(lineValues, null, 2)}
             </Text> */}
-            <View className="bg-gray-50 rounded-xl p-3 pb-1 mb-4 border border-gray-100">
-              {/* QR Code hiển thị lại mã đã quét */}
-              {statusTypeValue === "EDIT" && (
-                <View className="flex-row justify-between items-center py-3 border-b border-gray-200">
-                  <Text className="text-gray-600 font-medium">
-                    Testing Nbr:
-                  </Text>
-                  <Text className="text-gray-900 font-bold">
-                    {formValues?.TestingNbr}
-                  </Text>
-                </View>
-              )}
-
-              <View className="flex-row justify-between items-center py-2 border-b border-gray-200">
-                <Text className="text-gray-600 font-medium w-24">
-                  Testing Date
+          <View className="bg-gray-50 rounded-xl p-3 pb-1 mb-4 border border-gray-100">
+            {/* QR Code hiển thị lại mã đã quét */}
+            {statusTypeValue === "EDIT" && (
+              <View className="flex-row justify-between items-center py-3 border-b border-gray-200">
+                <Text className="text-gray-600 font-medium">Testing Nbr:</Text>
+                <Text className="text-gray-900 font-bold">
+                  {formValues?.TestingNbr}
                 </Text>
+              </View>
+            )}
+
+            {!(statusTypeValue === "EDIT" && formValues?.DiscreteNbr) && (
+              <View className="flex-row items-center justify-between py-2 border-b border-gray-200">
+                <Text className="text-gray-600 font-medium w-24">QRCode:</Text>
                 <Pressable
-                  onPress={() => setOpenDate(true)}
-                  className="flex-1 bg-white border border-gray-300 rounded-lg p-2 h-11 justify-center px-3"
+                  onPress={handleLSXModal}
+                  className="flex-1 flex-row items-center bg-white border border-gray-300 rounded-lg p-2 h-11 justify-between px-3"
                 >
-                  <Text className="text-slate-800 text-right font-bold">
-                    {formValues?.TestingDate
-                      ? formatDate(new Date(formValues?.TestingDate))
-                      : formatDate(new Date())}
+                  <Text
+                    className={`flex-1 ${
+                      formValues?.DiscreteNbr
+                        ? "text-slate-800 font-bold"
+                        : "text-slate-600"
+                    } `}
+                  >
+                    {formValues?.DiscreteNbr
+                      ? formValues?.DiscreteNbr
+                      : "Select LSX"}
                   </Text>
+                  {settings.useCameraScan && (
+                    <Pressable
+                      onPress={() => setShowCameraModal(true)}
+                      className="p-2"
+                    >
+                      <FontAwesomeIcon
+                        icon={faCamera}
+                        size={18}
+                        color={AppColors.primary}
+                      />
+                    </Pressable>
+                  )}
+                  <Pressable onPress={handleClearQrcode} className="p-2">
+                    <FontAwesomeIcon icon={faXmark} size={18} color="#9ca3af" />
+                  </Pressable>
                 </Pressable>
               </View>
-              {formValues?.LsxNo && (
-                <View className="flex-row justify-between items-center border-b border-gray-200 py-3">
-                  <Text className="font-medium text-gray-600">LSX No:</Text>
-                  <View className="flex-row items-center">
-                    <Text className="text-primary font-bold mr-2">
-                      {formValues?.LsxNo}
-                    </Text>
-                    {statusTypeValue !== "EDIT" ? (
-                      <TouchableOpacity
-                        onPress={() => setShowCameraModal(true)}
-                      >
-                        <FontAwesomeIcon
-                          icon={faRotateRight}
-                          size={16}
-                          color={AppColors.primary}
-                        />
-                      </TouchableOpacity>
-                    ) : (
-                      <View />
-                    )}
-                  </View>
-                </View>
-              )}
+            )}
 
+            <View className="flex-row justify-between items-center py-2 border-b border-gray-200">
+              <Text className="text-gray-600 font-medium w-24">
+                Testing Date
+              </Text>
+              <Pressable
+                onPress={() => setOpenDate(true)}
+                className="flex-1 bg-white border border-gray-300 rounded-lg p-2 h-11 justify-center px-3"
+              >
+                <Text className="text-slate-800 text-right font-bold">
+                  {formValues?.TestingDate
+                    ? formatDate(new Date(formValues?.TestingDate))
+                    : formatDate(new Date())}
+                </Text>
+              </Pressable>
+            </View>
+
+            {formValues?.DiscreteNbr && (
+              <View className="flex-row justify-between items-center border-b border-gray-200 py-3">
+                <Text className="font-medium text-gray-600">LSX Nbr:</Text>
+                <View className="flex-row items-center">
+                  <Text className="text-primary font-bold mr-2">
+                    {formValues?.DiscreteNbr}
+                  </Text>
+                  {statusTypeValue !== "EDIT" ? (
+                    <TouchableOpacity onPress={() => setShowCameraModal(true)}>
+                      <FontAwesomeIcon
+                        icon={faRotateRight}
+                        size={16}
+                        color={AppColors.primary}
+                      />
+                    </TouchableOpacity>
+                  ) : (
+                    <View />
+                  )}
+                </View>
+              </View>
+            )}
+
+            {formValues?.LsxNo && (
               <View className="flex-row justify-between items-center py-3 border-b border-gray-200">
                 <Text className="text-gray-600 font-medium">LSX Ref:</Text>
                 <Text className="text-gray-900 font-bold">
                   {formValues?.LsxRef}
                 </Text>
               </View>
+            )}
 
-              <View className="flex-row justify-between items-center py-3 border-b border-gray-200">
-                <Text className="text-gray-600 font-medium">Inventory CD:</Text>
-                <Text className="text-gray-900 font-bold">
-                  {formValues?.InventoryCD}
-                </Text>
-              </View>
-
-              <View className="flex-row justify-between items-center py-3 border-b border-gray-200">
-                <Text className="text-gray-600 font-medium w-24">UOM:</Text>
-                <Text className="text-gray-900 font-bold">
-                  {formValues?.Uom}
-                </Text>
-              </View>
-
-              <View className="flex-row justify-between items-center py-3 border-b border-gray-200">
-                <Text className="text-gray-600 font-medium w-24">
-                  Production standards:
-                </Text>
-                <Text className="text-gray-900 font-bold">
-                  {formValues?.ProductionStandard}
-                </Text>
-              </View>
-
-              <View className="flex-row items-center py-2 border-b border-gray-200">
-                <Text className="text-gray-600 font-medium w-24">
-                  Inspection time:
-                </Text>
-                <Pressable
-                  className="flex-1 bg-white border border-gray-300 rounded-lg p-2 h-11 justify-center px-3"
-                  onPress={handleInspectionTimeModal}
-                >
-                  <Text className="text-gray-800 text-right">
-                    {formValues?.InspectionTime
-                      ? formValues?.InspectionTime
-                      : "Select Inspection Time"}
-                  </Text>
-                </Pressable>
-              </View>
-
-              <View className="flex-row items-center justify-between py-2 border-b border-gray-200">
-                <Text className="text-gray-600 font-medium w-24">
-                  Test Qty:
-                </Text>
-                <TextInput
-                  className="flex-1 text-right bg-white border border-gray-300 rounded-lg h-11 px-3 text-gray-600"
-                  onFocus={() => handleFocus("TestQty")}
-                  onChangeText={(text) => handleOnChange(text, "TestQty")}
-                  keyboardType="numeric"
-                  value={
-                    formValues?.TestQty ? formValues.TestQty.toString() : "0"
-                  }
-                />
-              </View>
-
-              <View className="flex-row items-center py-2 border-b border-gray-200">
-                <Text className="text-gray-600 font-medium w-24">MF Nong:</Text>
-                <Pressable
-                  className="flex-1 bg-white border border-gray-300 rounded-lg p-2 h-11 justify-center px-3"
-                  onPress={handleMFNongModal}
-                >
-                  <Text className="text-gray-800 text-right">
-                    {formValues?.MFNongDescr
-                      ? formValues?.MFNongDescr
-                      : "Select MF Nong"}
-                  </Text>
-                </Pressable>
-              </View>
-
-              <View className="flex-row items-center justify-between py-2 border-b border-gray-200">
-                <Text className="text-gray-600 font-medium w-24">
-                  Conclude:
-                </Text>
-
-                <View className="flex-1 flex-row justify-end space-x-3">
-                  {[
-                    { Code: "D", Descr: "Đạt" },
-                    { Code: "K", Descr: "Không đạt" },
-                  ].map((item) => {
-                    const isSelected = formValues?.Conclude === item.Code;
-
-                    return (
-                      <Pressable
-                        key={item.Code}
-                        onPress={() => handleOnChange(item.Code, "Conclude")}
-                        className={`flex-row items-center px-4 py-2.5 rounded-lg`}
-                      >
-                        {/* Vòng tròn Radio Outer */}
-                        <View
-                          className={`w-4 h-4 rounded-full border items-center justify-center mr-2 ${
-                            isSelected
-                              ? item.Code === "D"
-                                ? "border-emerald-500"
-                                : "border-red-500"
-                              : "border-gray-400"
-                          }`}
-                        >
-                          {/* Chấm tròn Radio Inner */}
-                          {isSelected && (
-                            <View
-                              className={`w-2 h-2 rounded-full ${
-                                item.Code === "D"
-                                  ? "bg-emerald-500"
-                                  : "bg-red-500"
-                              }`}
-                            />
-                          )}
-                        </View>
-
-                        {/* Nhãn Đạt / Không đạt */}
-                        <Text
-                          className={`text-sm font-semibold ${
-                            isSelected
-                              ? item.Code === "D"
-                                ? "text-emerald-700"
-                                : "text-red-700"
-                              : "text-gray-600"
-                          }`}
-                        >
-                          {item.Descr}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-
-              <View className="flex-row py-2">
-                <Text className="text-gray-600 font-medium w-24 mt-2">
-                  Description:
-                </Text>
-                <TextInput
-                  className="flex-1 bg-white border border-gray-300 rounded-lg p-2 min-h-[60px] text-gray-800"
-                  onFocus={() => handleFocus("Description")}
-                  onChangeText={(text) => handleOnChange(text, "Description")}
-                  multiline={true}
-                  textAlignVertical="top"
-                  value={formValues?.Description}
-                />
-              </View>
-            </View>
-
-            <View className="flex-row justify-between items-center mb-2 px-1">
-              <Text className="text-lg font-bold text-gray-800">
-                Line Detail
+            <View className="flex-row justify-between items-center py-3 border-b border-gray-200">
+              <Text className="text-gray-600 font-medium">Inventory CD:</Text>
+              <Text className="text-gray-900 font-bold">
+                {formValues?.InventoryCD}
               </Text>
             </View>
 
-            <GeneralTable
-              data={lineValues}
-              columns={columns}
-              selectedColumns={selectedColumns}
-              onRowPress={(item, index) => handleEdit(item, index)}
-              renderCell={renderCustomCell}
-            />
+            <View className="flex-row justify-between items-center py-3 border-b border-gray-200">
+              <Text className="text-gray-600 font-medium w-24">UOM:</Text>
+              <Text className="text-gray-900 font-bold">{formValues?.Uom}</Text>
+            </View>
 
-            <View className="pb-[30%]"></View>
-          </ScrollView>
-        )}
+            <View className="flex-row justify-between items-center py-3 border-b border-gray-200">
+              <Text className="text-gray-600 font-medium w-24">
+                Production standards:
+              </Text>
+              <Text className="text-gray-900 font-bold">
+                {formValues?.ProductionStandard}
+              </Text>
+            </View>
+
+            <View className="flex-row items-center py-2 border-b border-gray-200">
+              <Text className="text-gray-600 font-medium w-24">
+                Inspection time:
+              </Text>
+              <Pressable
+                className="flex-1 bg-white border border-gray-300 rounded-lg p-2 h-11 justify-center px-3"
+                onPress={handleInspectionTimeModal}
+              >
+                <Text className="text-gray-800 text-right">
+                  {formValues?.InspectionTime
+                    ? formValues?.InspectionTime
+                    : "Select Inspection Time"}
+                </Text>
+              </Pressable>
+            </View>
+
+            <View className="flex-row items-center justify-between py-2 border-b border-gray-200">
+              <Text className="text-gray-600 font-medium w-24">Test Qty:</Text>
+              <TextInput
+                className="flex-1 text-right bg-white border border-gray-300 rounded-lg h-11 px-3 text-gray-600"
+                onFocus={() => handleFocus("TestQty")}
+                onChangeText={(text) => handleOnChange(text, "TestQty")}
+                keyboardType="numeric"
+                value={formValues?.TestQty ? formValues.TestQty.toString() : ""}
+              />
+            </View>
+
+            <View className="flex-row items-center py-2 border-b border-gray-200">
+              <Text className="text-gray-600 font-medium w-24">MF Nong:</Text>
+              <Pressable
+                className="flex-1 bg-white border border-gray-300 rounded-lg p-2 h-11 justify-center px-3"
+                onPress={handleMFNongModal}
+              >
+                <Text className="text-gray-800 text-right">
+                  {formValues?.MFNongDescr
+                    ? formValues?.MFNongDescr
+                    : "Select MF Nong"}
+                </Text>
+              </Pressable>
+            </View>
+
+            <View className="flex-row py-2 border-b border-gray-200">
+              <Text className="text-gray-600 font-medium w-24 mt-2">
+                Description:
+              </Text>
+              <TextInput
+                className="flex-1 bg-white border border-gray-300 rounded-lg p-2 min-h-[60px] text-gray-800"
+                onFocus={() => handleFocus("Description")}
+                onChangeText={(text) => handleOnChange(text, "Description")}
+                multiline={true}
+                textAlignVertical="top"
+                value={formValues?.Description}
+              />
+            </View>
+
+            <View className="flex-row items-center justify-between py-2">
+              <Text className="text-gray-600 font-medium w-24">Conclude:</Text>
+
+              <View className="flex-1 flex-row justify-end space-x-3">
+                {[
+                  { Code: "D", Descr: "Đạt" },
+                  { Code: "K", Descr: "Không đạt" },
+                ].map((item) => {
+                  const isSelected = formValues?.Conclude === item.Code;
+
+                  return (
+                    <Pressable
+                      key={item.Code}
+                      onPress={() => handleOnChange(item.Code, "Conclude")}
+                      className={`flex-row items-center px-4 py-2.5 rounded-lg`}
+                    >
+                      {/* Vòng tròn Radio Outer */}
+                      <View
+                        className={`w-4 h-4 rounded-full border items-center justify-center mr-2 ${
+                          isSelected
+                            ? item.Code === "D"
+                              ? "border-emerald-500"
+                              : "border-red-500"
+                            : "border-gray-400"
+                        }`}
+                      >
+                        {/* Chấm tròn Radio Inner */}
+                        {isSelected && (
+                          <View
+                            className={`w-2 h-2 rounded-full ${
+                              item.Code === "D"
+                                ? "bg-emerald-500"
+                                : "bg-red-500"
+                            }`}
+                          />
+                        )}
+                      </View>
+
+                      {/* Nhãn Đạt / Không đạt */}
+                      <Text
+                        className={`text-sm font-semibold ${
+                          isSelected
+                            ? item.Code === "D"
+                              ? "text-emerald-700"
+                              : "text-red-700"
+                            : "text-gray-600"
+                        }`}
+                      >
+                        {item.Descr}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+
+          <View className="flex-row justify-between items-center mb-2 px-1">
+            <Text className="text-lg font-bold text-gray-800">Line Detail</Text>
+          </View>
+
+          <GeneralTable
+            data={lineValues}
+            columns={columns}
+            selectedColumns={selectedColumns}
+            onRowPress={(item, index) => handleEdit(item, index)}
+            renderCell={renderCustomCell}
+          />
+
+          <View className="pb-[30%]"></View>
+        </ScrollView>
 
         {inspectionTimeModal && (
           <InspectionTimeModalList
@@ -718,6 +767,14 @@ const DetailQualityControl = () => {
             onSubmit={handleGetValueFromMFNongModal}
             open={mfNongModal}
             title="Select MF Nong"
+          />
+        )}
+        {lsxModal && (
+          <LSXModalList
+            handleOpenLSXModalList={handleLSXModal}
+            onSubmit={handleGetValueFromLSXModal}
+            open={lsxModal}
+            title="Select LSX"
           />
         )}
         {openModalLineDetail ? (
