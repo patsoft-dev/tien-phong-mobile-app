@@ -109,3 +109,9 @@ export type QualityControlTypeModal = {
   label: string;
   value: string;
 };
+
+export type UserType = {
+  UserName: string;
+  DisplayName: string;
+  FullName: string;
+};

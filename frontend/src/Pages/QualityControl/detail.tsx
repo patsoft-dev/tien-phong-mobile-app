@@ -322,6 +322,7 @@ const DetailQualityControl = () => {
         LsxRef: qcData.LsxRef,
         InventoryID: qcData.InventoryID,
         InventoryCD: qcData.InventoryCD,
+        InventoryName: qcData.InventoryName,
         Uom: qcData.Uom,
         ProductionStandard: qcData.ProductionStandard,
       }));

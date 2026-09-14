@@ -12,13 +12,18 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import {
   faArrowsRotate,
+  faCalendarDays,
+  faMagnifyingGlass,
   faPlus,
+  faRotateLeft,
   faTrash,
+  faUser,
+  faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { CustomColor, formatDate, formatTime } from "../../ults";
 import { useRecoilValue, useSetRecoilState } from "recoil";
 import { loadingStore } from "../../Store/loadingStore";
-import { TypeFormQCHeader } from "./type";
+import { TypeFormQCHeader, UserType } from "./type";
 import Toast from "react-native-toast-message";
 import { getApi, postApi, deleteApi } from "../../Base/api/api_service__";
 import {
@@ -30,6 +35,8 @@ import GeneralTable, { TableColumn } from "../../Components/GeneralTable";
 import Pagination from "../../Components/Pagination";
 import { AppColors } from "../../../colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import DatePicker from "react-native-date-picker";
+import UserModalList from "./Modal/UserModal";
 
 const QualityControlList = () => {
   const setLoadingAtom = useSetRecoilState(loadingStore);
@@ -42,10 +49,38 @@ const QualityControlList = () => {
   const setQualityControlDetailID = useSetRecoilState(QualityControlDetailID);
   const navigate = useNavigation();
 
+  // 🗓️ Ngày mặc định (Đầu tháng đến Cuối tháng)
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const [openFromDate, setOpenFromDate] = useState(false);
+  const [fromDate, setFromDate] = useState<Date>(firstDayOfMonth);
+  const [openToDate, setOpenToDate] = useState(false);
+  const [toDate, setToDate] = useState<Date>(lastDayOfMonth);
+  const [userModal, setUserModal] = useState(false);
   const [list, setList] = useState<TypeFormQCHeader[]>([]);
   const [page, setPage] = useState(1);
   const [totalPage, setTotalPage] = useState(0);
 
+  const formatDateToApi = (dateInput: Date | string) => {
+    if (!dateInput) return "";
+    const date =
+      typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+    if (isNaN(date.getTime())) return "";
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+  const [params, setParams] = useState({
+    fromDate: formatDateToApi(firstDayOfMonth),
+    toDate: formatDateToApi(lastDayOfMonth),
+    page: 1,
+    pageSize: 20,
+    owner: "",
+    username: "",
+  });
   //#region Table Config
   const columns: TableColumn[] = [
     { name: "STT", label: "No", width: 50 },
@@ -182,11 +217,19 @@ const QualityControlList = () => {
   //   );
   // };
 
-  const getList = async () => {
+  const getList = async (searchParams: any) => {
     setLoadingAtom(true);
     try {
       const url = "/APIMobile/ShiftTestingsPaging";
-      const response = await getApi(url, { page: page, pageSize: 15 });
+      let params = {
+        page: searchParams.page,
+        pageSize: searchParams.pageSize,
+        fromDate: formatDateToApi(searchParams.fromDate),
+        toDate: formatDateToApi(searchParams.toDate),
+        owner: searchParams.owner,
+      };
+      console.log("Search Params: ", params);
+      const response = await getApi(url, params);
 
       // console.log("Dữ liệu Server trả về:", response);
       if (response.success && response.data) {
@@ -221,15 +264,57 @@ const QualityControlList = () => {
     }
   };
 
+  const handleUserModal = () => {
+    setUserModal(!userModal);
+  };
+
+  const handleSearch = () => {
+    if (params.page !== 1) {
+      setParams((prev) => ({ ...prev, page: 1 }));
+    } else {
+      getList(params);
+    }
+  };
+
+  const handleChangeParam = (value: any, field: string) => {
+    setParams((prevValues: any) => {
+      return {
+        ...prevValues,
+        [field]: value,
+      };
+    });
+  };
+  const handleResetFilter = () => {
+    setFromDate(firstDayOfMonth);
+    setToDate(lastDayOfMonth);
+    setParams((prev) => ({
+      ...prev,
+      fromDate: formatDateToApi(firstDayOfMonth),
+      toDate: formatDateToApi(lastDayOfMonth),
+      owner: "",
+      page: 1,
+    }));
+  };
+
   useEffect(() => {
-    getList();
+    getList({ ...params, page });
   }, [page]);
+
+  useEffect(() => {
+    getList(params);
+  }, [params.fromDate, params.toDate, params.owner, params.page]);
 
   useFocusEffect(
     useCallback(() => {
-      getList();
+      getList(params);
+    }, [params]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      getList(params);
       return () => {};
-    }, [page]),
+    }, []),
   );
 
   const handleEdit = (item: TypeFormQCHeader) => {
@@ -280,6 +365,103 @@ const QualityControlList = () => {
         }
       />
 
+      <View className="bg-white p-3 border-b border-slate-200 shadow-sm space-y-2">
+        <View className="flex-row items-center space-x-2">
+          <View className="flex-1">
+            <View className="flex-1">
+              <Pressable
+                onPress={() => handleUserModal()}
+                className="flex-row items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-3 h-12 active:bg-slate-100"
+              >
+                <Text
+                  numberOfLines={1}
+                  className="text-xs font-semibold text-slate-800 flex-1 mr-1"
+                >
+                  {/* ✅ Lấy fullname từ params.userObj */}
+                  {params.username ? params.username : "Chọn người dùng"}
+                </Text>
+                {params.username ? (
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      // ✅ Clear cả userId và username trong params
+                      setParams((prev) => ({
+                        ...prev,
+                        userId: "",
+                        username: "",
+                      }));
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faXmark} size={14} color="#94a3b8" />
+                  </TouchableOpacity>
+                ) : (
+                  <FontAwesomeIcon
+                    icon={faUser}
+                    color={AppColors.secondary}
+                    size={13}
+                  />
+                )}
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Nút Reset (Xóa lọc) */}
+          <TouchableOpacity
+            onPress={handleResetFilter}
+            className="w-12 h-12 bg-slate-100 rounded-xl items-center justify-center border border-slate-200 active:bg-slate-200"
+          >
+            <FontAwesomeIcon icon={faRotateLeft} color="#64748b" size={14} />
+          </TouchableOpacity>
+
+          {/* Nút Tìm kiếm (Search) */}
+          <TouchableOpacity
+            onPress={handleSearch}
+            className="bg-primary w-12 h-12 rounded-xl items-center justify-center shadow-sm active:opacity-80"
+          >
+            <FontAwesomeIcon
+              icon={faMagnifyingGlass}
+              color="#ffffff"
+              size={14}
+            />
+          </TouchableOpacity>
+        </View>
+        <View className="flex-row items-center space-x-2">
+          {/* Ô Từ ngày */}
+          <View className="flex-1">
+            <Pressable
+              onPress={() => setOpenFromDate(true)}
+              className="flex-row items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-3 h-12 active:bg-slate-100"
+            >
+              <Text className="text-slate-800 text-xs font-semibold">
+                {fromDate ? formatDate(fromDate) : ""}
+              </Text>
+              <FontAwesomeIcon
+                icon={faCalendarDays}
+                color={AppColors.secondary}
+                size={14}
+              />
+            </Pressable>
+          </View>
+
+          {/* Ô Đến ngày */}
+          <View className="flex-1">
+            <Pressable
+              onPress={() => setOpenToDate(true)}
+              className="flex-row items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-3 h-12 active:bg-slate-100"
+            >
+              <Text className="text-slate-800 text-xs font-semibold">
+                {toDate ? formatDate(toDate) : ""}
+              </Text>
+              <FontAwesomeIcon
+                icon={faCalendarDays}
+                color={AppColors.secondary}
+                size={14}
+              />
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
       {/* Table Area */}
 
       {/* <ScrollView>
@@ -305,6 +487,58 @@ const QualityControlList = () => {
         page={page}
         totalPage={totalPage}
         onPageChange={(newPage) => setPage(newPage)}
+      />
+
+      {userModal && (
+        <UserModalList
+          handleOpenUserModalList={() => setUserModal(false)}
+          onSubmit={(selected: UserType) => {
+            setParams((prev) => ({
+              ...prev,
+              owner: selected?.UserName ? String(selected.UserName) : "",
+              username: selected.DisplayName,
+            }));
+            setUserModal(false);
+          }}
+          open={userModal}
+          title="Chọn nhân viên"
+        />
+      )}
+
+      <DatePicker
+        modal
+        mode="date"
+        open={openFromDate}
+        date={fromDate ? new Date(fromDate) : new Date()}
+        locale="vi"
+        onConfirm={(date) => {
+          setOpenFromDate(false);
+          setFromDate(date);
+          setParams((prev) => ({
+            ...prev,
+            fromDate: date as any,
+          }));
+        }}
+        title={"Từ ngày"}
+        onCancel={() => setOpenFromDate(false)}
+      />
+
+      <DatePicker
+        modal
+        mode="date"
+        open={openToDate}
+        date={toDate ? new Date(toDate) : new Date()}
+        locale="vi"
+        onConfirm={(date) => {
+          setOpenToDate(false);
+          setToDate(date);
+          setParams((prev) => ({
+            ...prev,
+            toDate: date as any,
+          }));
+        }}
+        title={"Đến ngày"}
+        onCancel={() => setOpenToDate(false)}
       />
     </View>
   );
