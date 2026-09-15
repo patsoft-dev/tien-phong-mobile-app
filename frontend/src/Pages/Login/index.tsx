@@ -86,6 +86,9 @@ const LoginNavigate = () => {
         Username: formValues.username.trim(),
         Password: formValues.password,
         Tenant: formValues.tenant,
+        // Username: "admin",
+        // Password: "6789@6789",
+        // Tenant: "TIENPHONGNAM",
       };
 
       const result = await login(body);

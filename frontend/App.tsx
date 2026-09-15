@@ -6,9 +6,9 @@ import { RecoilRoot } from "recoil";
 import Toast, { ErrorToast, SuccessToast } from "react-native-toast-message";
 
 import AppNavigate from "./src";
-import { CustomColor } from "./src/ults";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import changeNavigationBarColor from "react-native-navigation-bar-color";
+import { AppColors } from "./colors";
 
 function App(): JSX.Element {
   const { colorScheme, setColorScheme } = useColorScheme();
@@ -37,7 +37,7 @@ function App(): JSX.Element {
         {...props}
         style={{
           width: "90%",
-          borderLeftColor: CustomColor.colorList.green,
+          borderLeftColor: AppColors.success,
           backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
           marginTop: 10,
         }}
@@ -59,7 +59,7 @@ function App(): JSX.Element {
         {...props}
         style={{
           width: "90%",
-          borderLeftColor: CustomColor.colorList.red,
+          borderLeftColor: AppColors.error,
           backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
           marginTop: 10,
         }}

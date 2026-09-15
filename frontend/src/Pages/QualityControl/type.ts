@@ -27,6 +27,7 @@ export type TypeFormQCHeader = {
   LsxRef?: string;
   InventoryID?: number;
   InventoryCD?: string;
+  InventoryName?: string;
   Uom?: string;
   ProductionStandard?: string;
   DiscreteNbr?: string;

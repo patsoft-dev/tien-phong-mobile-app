@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Modal,
   View,
@@ -18,9 +18,8 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { UserType } from "../type";
-import { getApi } from "../../../Base/api/api_service";
+import { getApi } from "../../../Base/api/api_service__";
 import Toast from "react-native-toast-message";
-import Pagination from "../../../Components/Pagination";
 
 type UserModalListProps = {
   handleOpenUserModalList: () => void;
@@ -32,27 +31,39 @@ type UserModalListProps = {
 const UserModalList = (props: UserModalListProps) => {
   const { handleOpenUserModalList, onSubmit, open, title } = props;
 
-  // State dữ liệu gốc từ API
-  const [rawData, setRawData] = useState<UserType[]>([]);
+  const [dataList, setDataList] = useState<UserType[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
 
-  // State Phân Trang Client
-  const [page, setPage] = useState(1);
-  const LIMIT = 10;
+  // Hàm hỗ trợ chuyển tiếng Việt có dấu thành không dấu
+  const removeVietnameseTones = (str: string): string => {
+    return str
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "D");
+  };
 
-  // 🚀 Lấy toàn bộ danh sách User từ API
-  const fetchUsers = async () => {
+  const fetchUsers = async (searchQuery: string = "") => {
     setLoading(true);
     try {
-      const url = `/APIMobile/ShiftTestingOwnerMobile`;
-      const response = await getApi(url, {});
+      // Chuyển "thắng" -> "thang"
+      const unaccentedQuery = removeVietnameseTones(searchQuery.trim());
 
-      console.log("fetchUsers", response);
+      const url = `/APIMobile/ShiftTestingOwnerMobile?strSearch=${encodeURIComponent(
+        unaccentedQuery,
+      )}`;
+
+      const response = await getApi(url, {});
+      // ... giữ nguyên đoạn bên dưới
+
+      console.log("fetchUsers response:", response);
+      console.log("url:", url);
+
       if (response?.success && Array.isArray(response.data)) {
-        setRawData(response.data);
+        setDataList(response.data);
       } else {
-        setRawData([]);
+        setDataList([]);
       }
     } catch (error: any) {
       if (error?.status === 404) {
@@ -62,7 +73,7 @@ const UserModalList = (props: UserModalListProps) => {
           text2: error.message || "Không tìm thấy danh sách nhân viên",
         });
       }
-      setRawData([]);
+      setDataList([]);
     } finally {
       setLoading(false);
     }
@@ -70,11 +81,30 @@ const UserModalList = (props: UserModalListProps) => {
 
   useEffect(() => {
     if (open) {
-      setPage(1);
+      if (searchText.trim()) {
+        // Nếu đã có searchText sẵn thì mới gọi API
+        fetchUsers(searchText);
+      } else {
+        // Nếu chưa có searchText thì clear danh sách cũ
+        setDataList([]);
+      }
+    } else {
+      // Khi đóng modal thì reset lại input và danh sách
       setSearchText("");
-      fetchUsers();
+      setDataList([]);
     }
   }, [open]);
+
+  // Nút tìm kiếm bên cạnh ô Input
+  const handleSearch = () => {
+    Keyboard.dismiss();
+    fetchUsers(searchText);
+  };
+
+  const handleClearSearch = () => {
+    setSearchText("");
+    fetchUsers("");
+  };
 
   const handleCancel = () => {
     setSearchText("");
@@ -85,36 +115,6 @@ const UserModalList = (props: UserModalListProps) => {
     setSearchText("");
     onSubmit(item);
     handleOpenUserModalList();
-  };
-
-  // 🔍 1. Lọc danh sách theo từ khóa tìm kiếm
-  const filteredData = useMemo(() => {
-    if (!searchText.trim()) return rawData;
-
-    const query = searchText.toLowerCase().trim();
-    return rawData.filter(
-      (item) =>
-        item?.UserName?.toString().toLowerCase().includes(query) ||
-        item?.DisplayName?.toLowerCase().includes(query) ||
-        item?.FullName?.toLowerCase().includes(query),
-    );
-  }, [rawData, searchText]);
-
-  // 📄 2. Tính tổng số trang dựa trên kết quả đã filter
-  const totalPage = useMemo(() => {
-    return Math.ceil(filteredData.length / LIMIT) || 0;
-  }, [filteredData]);
-
-  // ✂️ 3. Cắt mảng lấy danh sách hiển thị cho Trang hiện tại
-  const displayData = useMemo(() => {
-    const startIndex = (page - 1) * LIMIT;
-    return filteredData.slice(startIndex, startIndex + LIMIT);
-  }, [filteredData, page]);
-
-  // Reset về trang 1 mỗi khi người dùng nhập từ khóa tìm kiếm mới
-  const handleSearchChange = (text: string) => {
-    setSearchText(text);
-    setPage(1);
   };
 
   return (
@@ -135,54 +135,62 @@ const UserModalList = (props: UserModalListProps) => {
               </Pressable>
             </View>
 
-            {/* 🔍 Search Input */}
+            {/* 🔍 Search Input + Button Kính lúp */}
             <View className="px-4 pt-3">
-              <View className="flex-row items-center bg-slate-100 rounded-2xl px-3 h-10 border border-slate-200">
-                <FontAwesomeIcon
-                  icon={faMagnifyingGlass}
-                  size={16}
-                  color="#94a3b8"
-                />
-                <TextInput
-                  className="flex-1 ml-2 text-sm text-slate-800 font-medium h-full py-0"
-                  placeholder="Tìm theo mã, tên nhân viên..."
-                  placeholderTextColor="#94a3b8"
-                  value={searchText}
-                  onChangeText={handleSearchChange}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                {searchText.length > 0 && (
-                  <Pressable
-                    onPress={() => handleSearchChange("")}
-                    className="p-1"
-                  >
-                    <FontAwesomeIcon
-                      icon={faCircleXmark}
-                      size={16}
-                      color="#94a3b8"
-                    />
-                  </Pressable>
-                )}
+              <View className="flex-row items-center space-x-2">
+                <View className="flex-1 flex-row items-center bg-slate-100 rounded-2xl px-3 h-11 border border-slate-200">
+                  <TextInput
+                    className="flex-1 text-sm text-slate-800 font-medium h-full py-0"
+                    placeholder="Tìm theo mã, tên nhân viên..."
+                    placeholderTextColor="#94a3b8"
+                    value={searchText}
+                    onChangeText={setSearchText}
+                    onSubmitEditing={handleSearch}
+                    returnKeyType="search"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  {searchText.length > 0 && (
+                    <Pressable onPress={handleClearSearch} className="p-1">
+                      <FontAwesomeIcon
+                        icon={faCircleXmark}
+                        size={16}
+                        color="#94a3b8"
+                      />
+                    </Pressable>
+                  )}
+                </View>
+
+                {/* Nút bấm Tìm kiếm */}
+                <Pressable
+                  onPress={handleSearch}
+                  className="bg-primary w-11 h-11 rounded-2xl items-center justify-center shadow-sm active:opacity-80"
+                >
+                  <FontAwesomeIcon
+                    icon={faMagnifyingGlass}
+                    size={16}
+                    color="#ffffff"
+                  />
+                </Pressable>
               </View>
             </View>
 
             {/* Body */}
             <View className="p-4">
               {loading ? (
-                <View className="h-72 justify-center items-center">
+                <View className="h-80 justify-center items-center">
                   <ActivityIndicator color={AppColors.primary} size="large" />
-                  <Text className="mt-2 text-slate-400 italic">
-                    Đang tải...
+                  <Text className="mt-2 text-slate-400 italic text-xs">
+                    Đang tải dữ liệu...
                   </Text>
                 </View>
-              ) : displayData.length > 0 ? (
-                <View className="h-72">
+              ) : dataList.length > 0 ? (
+                <View className="h-80">
                   <ScrollView
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                   >
-                    {displayData.map((item: UserType, index: number) => (
+                    {dataList.map((item: UserType, index: number) => (
                       <Pressable
                         onPress={() => handleChooseItem(item)}
                         key={item?.UserName || index}
@@ -204,7 +212,7 @@ const UserModalList = (props: UserModalListProps) => {
                   </ScrollView>
                 </View>
               ) : (
-                <View className="h-72 justify-center items-center">
+                <View className="h-80 justify-center items-center">
                   <Text className="text-slate-400 italic text-sm">
                     Không tìm thấy nhân viên phù hợp
                   </Text>
@@ -212,19 +220,8 @@ const UserModalList = (props: UserModalListProps) => {
               )}
             </View>
 
-            {/* Pagination Component */}
-            {totalPage > 1 && (
-              <View className="px-3 pb-2">
-                <Pagination
-                  page={page}
-                  totalPage={totalPage}
-                  onPageChange={(newPage) => setPage(newPage)}
-                />
-              </View>
-            )}
-
             {/* Footer */}
-            <View className="py-2 px-4 bg-slate-50 flex-row justify-center border-t border-slate-100">
+            <View className="py-3 px-4 bg-slate-50 flex-row justify-center border-t border-slate-100">
               <Pressable
                 onPress={handleCancel}
                 className="bg-red-500 py-3 px-10 rounded-xl active:opacity-70 shadow-sm"

@@ -24,7 +24,7 @@ import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import HeaderComponent from "../../Base/HeaderComponent/headerComponent";
 import { useNavigation } from "@react-navigation/native";
 import { loadingStore } from "../../Store/loadingStore";
-import { formatDate, combineDateWithCurrentTime } from "../../ults";
+import { formatDate } from "../../ults";
 import { AppColors } from "../../../colors";
 import { getApi, postApi } from "../../Base/api/api_service__";
 import CameraScannerWrapper from "../../Base/CameraScannerWrapper/CameraScannerWrapper";
@@ -295,6 +295,8 @@ const DetailQualityControl = () => {
       // Truyền biến currentPage động vào chuỗi API query string
       const api = `/APIMobile/ShiftTestingDiscreteJob?discreteNbr=${lsx}`;
       const item = await getApi(api, {});
+      console.log("ShiftTestingDiscreteJob: ", item);
+      // return;
       if (item.success && item.data) {
         return item.data;
       } else {
@@ -308,12 +310,20 @@ const DetailQualityControl = () => {
   };
 
   const handleScanResult = async (qrData: string) => {
-    // console.log("🔍 QR Code Data from Camera:", qrData);
+    console.log("🔍 QR Code Data from Camera:", qrData);
 
     // 1. Kiểm tra chuỗi QR có dữ liệu hay không
     if (qrData) {
       const qcData = await getQC(qrData);
       console.log("QC Data", qcData);
+      if (!qcData) {
+        Toast.show({
+          type: "error",
+          text1: "Lỗi",
+          text2: `Không tìm thấy thông tin`,
+        });
+        return;
+      }
       setFormValues((prev) => ({
         ...prev,
         LsxNo: qrData,
@@ -336,7 +346,7 @@ const DetailQualityControl = () => {
       Toast.show({
         type: "success",
         text1: "Thành công",
-        text2: `Quét QR code thành công`,
+        text2: `Lấy thông tin từ QR code thành công`,
       });
     }
 
@@ -398,6 +408,21 @@ const DetailQualityControl = () => {
     setOpenModalLineDetail(true);
   };
 
+  const formatDateWitoutTime = (dateString: string): string => {
+    if (!dateString) return "";
+
+    const date = new Date(dateString);
+
+    // Kiểm tra nếu date không hợp lệ
+    if (isNaN(date.getTime())) return dateString;
+
+    // Đưa các giá trị Giờ, Phút, Giây, Mili-giây UTC về 0
+    date.setUTCHours(0, 0, 0, 0);
+
+    // Trả về chuỗi dạng ISO
+    return date.toISOString();
+  };
+
   const handleSaveForm = async () => {
     if (!formValues?.InventoryID) {
       Toast.show({
@@ -420,7 +445,7 @@ const DetailQualityControl = () => {
     // 🌟 3. Cập nhật Header với TestingDate đã được cộng +7h
     const updatedHeader = {
       ...formValues,
-      TestingDate: vnDate.toISOString(),
+      TestingDate: formatDateWitoutTime(vnDate.toISOString()),
     };
 
     const submitData = {
@@ -513,7 +538,9 @@ const DetailQualityControl = () => {
             {/* QR Code hiển thị lại mã đã quét */}
             {statusTypeValue === "EDIT" && (
               <View className="flex-row justify-between items-center py-3 border-b border-gray-200">
-                <Text className="text-gray-600 font-medium">Testing Nbr:</Text>
+                <Text className="text-gray-600 font-medium w-24">
+                  Testing Nbr:
+                </Text>
                 <Text className="text-gray-900 font-bold">
                   {formValues?.TestingNbr}
                 </Text>
@@ -597,7 +624,7 @@ const DetailQualityControl = () => {
 
             {formValues?.LsxNo && (
               <View className="flex-row justify-between items-center py-3 border-b border-gray-200">
-                <Text className="text-gray-600 font-medium">LSX Ref:</Text>
+                <Text className="text-gray-600 font-medium w-24">LSX Ref:</Text>
                 <Text className="text-gray-900 font-bold">
                   {formValues?.LsxRef}
                 </Text>
@@ -605,9 +632,24 @@ const DetailQualityControl = () => {
             )}
 
             <View className="flex-row justify-between items-center py-3 border-b border-gray-200">
-              <Text className="text-gray-600 font-medium">Inventory CD:</Text>
+              <Text className="text-gray-600 font-medium w-24">
+                Inventory CD:
+              </Text>
               <Text className="text-gray-900 font-bold">
                 {formValues?.InventoryCD}
+              </Text>
+            </View>
+
+            <View className="flex-row justify-between py-3 border-b border-gray-200">
+              <Text className="text-gray-600 font-medium w-24">
+                Inventory Name:
+              </Text>
+              <Text
+                className="text-gray-900 font-semibold text-sm flex-1 text-right ml-2"
+                numberOfLines={3}
+                ellipsizeMode="tail"
+              >
+                {formValues?.InventoryName}
               </Text>
             </View>
 
