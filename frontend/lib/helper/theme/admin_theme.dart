@@ -146,7 +146,7 @@ class ContentTheme {
   ContentTheme({
     this.background = const Color(0xfff0f0f0),
     this.onBackground = const Color(0xffF1F1F2),
-    this.primary = const Color(0xff1e1e1e),
+    this.primary = const Color(0xff289B7C),
     this.onPrimary = const Color(0xffffffff),
     this.disabled = const Color(0xffffffff),
     this.onDisabled = const Color(0xffffffff),

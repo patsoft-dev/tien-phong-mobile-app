@@ -50,14 +50,20 @@ class _LoginScreenState extends State<LoginScreen> with UIMixin {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Text(
-                                "TanPhong",
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: contentTheme.onBackground,
-                                ),
+                              Image.asset(
+                                'assets/logo.png',
+                                width: 200,
+                                height: 70,
+                                fit: BoxFit.contain,
                               ),
+                              // Text(
+                              //   "TanPhong",
+                              //   style: TextStyle(
+                              //     fontSize: 28,
+                              //     fontWeight: FontWeight.bold,
+                              //     color: contentTheme.onBackground,
+                              //   ),
+                              // ),
                               MySpacing.height(8),
                               Text(
                                 "Đăng nhập để tiếp tục quản lý",
@@ -72,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> with UIMixin {
 
                               MyInput(
                                 hintText: "Tài khoản",
-                                borderRadius: 6,
+                                borderRadius: 12,
                                 prefixIcon: RemixIcons.user_3_line,
                                 controller: controller.usernameController,
                                 textInputAction: TextInputAction.next,
@@ -83,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> with UIMixin {
 
                               MyInput(
                                 hintText: "Mật khẩu",
-                                borderRadius: 6,
+                                borderRadius: 12,
                                 prefixIcon: RemixIcons.lock_line,
                                 isPassword: true,
                                 controller: controller.passwordController,
@@ -101,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> with UIMixin {
                                     )
                                   : MyDropdown<CompanyModel>(
                                       hintText: "Chọn công ty",
-                                      borderRadius: 6,
+                                      borderRadius: 12,
                                       prefixIcon: RemixIcons.building_4_line,
                                       value: controller.selectedCompany,
                                       items: controller.companies

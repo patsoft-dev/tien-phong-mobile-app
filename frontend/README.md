@@ -51,6 +51,12 @@ flutter build apk --release
 Bash
 flutter build ios --release
 
+Lệnh đổi tên dự án sau khi clone
+flutter pub global run rename setAppName --value "TienPhongApp"
+
+Đổi tên Package ID / Bundle ID (Đổi tên thư mục Xcode /ios)
+flutter pub global run rename setBundleId --value "com.tienphong.qcmobileapp"
+
 Lệnh đổi toàn bộ logo, icon app từ file /assets/logo_ps.png
 flutter pub run flutter_launcher_icons //Xem ở cuối trang pubspec.yaml
 
