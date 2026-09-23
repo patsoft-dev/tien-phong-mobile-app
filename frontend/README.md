@@ -1,99 +1,71 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
-Update
+# 📊 Dự án Flutter Qrcode QrcodQrcode, Printer
 
-# Getting Started
+Tài liệu này hướng dẫn chi tiết cách kiểm tra môi trường, vận hành hệ thống phát triển (Development), đóng gói sản phẩm (Build Production) trên nhiều nền tảng, cũng như cấu hình triển khai thực tế (Web Hosting/iOS).
 
-> **Note**: Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions till "Creating a new application" step, before proceeding.
+---
 
-## Step 1: Start the Metro Server
+## 🚀 Các lệnh phát triển nhanh (Development Commands)
 
-First, you will need to start **Metro**, the JavaScript _bundler_ that ships _with_ React Native.
+Các câu lệnh dưới đây được thiết kế tối ưu bằng cách gộp chuỗi (`&&`). Bạn chỉ cần sao chép **một dòng duy nhất** cho nền tảng tương ứng, dán vào Terminal và nhấn `Enter`. Hệ thống sẽ tự động dọn dẹp bộ nhớ đệm, tải thư viện mới và khởi chạy ứng dụng.
 
-To start Metro, run the following command from the _root_ of your React Native project:
+### 1. Kiểm tra môi trường Flutter
 
-```bash
-# using npm
-npm start
-
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Start your Application
-
-Let Metro Bundler run in its _own_ terminal. Open a _new_ terminal from the _root_ of your React Native project. Run the following command to start your _Android_ or _iOS_ app:
-
-### For Android
+Trước khi chạy ứng dụng trên bất kỳ thiết bị nào, hãy chạy lệnh này để chắc chắn máy tính của bạn đã cài đặt đủ các công cụ cấu hình (như Xcode, Android SDK, CocoaPods...):
 
 ```bash
-# using npm
-npm run android
+flutter doctor
 
-# OR using Yarn
-yarn android
+2. Nền tảng Android (Thiết bị thật / Máy ảo)
+Bash
+flutter clean && flutter pub get && flutter run -d android
+
+3. Nền tảng Web (Google Chrome)
+Bash
+flutter clean && flutter pub get && flutter run -d chrome
+Chạy bỏ CORS trên chrome
+// flutter run -d chrome --web-browser-flag "--disable-web-security"
+4. Nền tảng macOS (Ứng dụng Desktop)
+Bash
+flutter clean && flutter pub get && flutter run -d macos
+
+5. Nền tảng iOS (Điện thoại iPhone / Máy ảo Simulator)
+Bash
+flutter clean && flutter pub get && cd ios && pod install && cd .. && flutter run -d ios
+
+6. Nền tảng Windows (Ứng dụng Desktop)
+Bash
+flutter clean && flutter pub get && flutter run -d windows
+
+Đóng gói phiên bản Web (Đưa lên aaPanel Hosting / Vercel):
+
+##Các lệnh đóng gói sản phẩm (Build Production)
+1. Đóng gói phiên bản Web (Đưa lên aaPanel Hosting / Vercel):
+Bash
+flutter build web --release
+
+2. Đóng gói phiên bản Android (File APK cài đặt trực tiếp):
+Bash
+flutter build apk --release
+
+3. Đóng gói phiên bản iOS (Đưa lên TestFlight / App Store):
+Bash
+flutter build ios --release
+
+Lệnh đổi toàn bộ logo, icon app từ file /assets/logo_ps.png
+flutter pub run flutter_launcher_icons //Xem ở cuối trang pubspec.yaml
+
+
+## Getting Started
+
+This project is a starting point for a Flutter application.
+
+A few resources to get you started if this is your first Flutter project:
+
+- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.
+
 ```
-
-### For iOS
-
-```bash
-# using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-Build apk
-cd android
-./gradlew clean
-./gradlew assembleRelease
-
-## rename app:
-
-npx react-native-rename "TienPhongApp" -b com.tienphong.app --skipGitStatusCheck
-
-## gen icons app
-
-npx react-native set-icon --path src/Assets/imgs/icon-favicon.png
-
-## clear and install pod ios
-
-cd ios
-rm -rf Pods Podfile.lock TienPhongApp.xcworkspace
-pod install
-
-If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
-
-This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
-
-## Step 3: Modifying your App
-
-Now that you have successfully run the app, let's modify it.
-
-1. Open `App.tsx` in your text editor of choice and edit some lines.
-2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
-
-   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [Introduction to React Native](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you can't get this to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
